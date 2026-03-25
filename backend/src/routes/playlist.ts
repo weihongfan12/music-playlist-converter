@@ -20,6 +20,9 @@ router.post('/parse', async (req: Request, res: Response) => {
 
     const playlistInfo = await parser.parsePlaylist(url, platform)
     
+    console.log(`[Parse] Playlist: ${playlistInfo.name}`)
+    console.log(`[Parse] SongCount: ${playlistInfo.songCount}, Actual songs: ${playlistInfo.songs?.length || 0}`)
+    
     res.json({
       code: 200,
       data: playlistInfo

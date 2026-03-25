@@ -9,6 +9,9 @@ router.post('/match', async (req: Request, res: Response) => {
   try {
     const { songs, targetPlatform, matchStrategy } = req.body
 
+    console.log(`[Match] Received songs: ${songs?.length || 0}`)
+    console.log(`[Match] Target platform: ${targetPlatform}`)
+
     if (!songs || !targetPlatform) {
       return res.status(400).json({
         code: 1001,
@@ -17,6 +20,8 @@ router.post('/match', async (req: Request, res: Response) => {
     }
 
     const results = await matcher.batchMatch(songs as Song[], targetPlatform as Platform)
+    
+    console.log(`[Match] Results count: ${results.length}`)
     
     const matched = results.filter(r => r.matchType !== 'unmatched').length
     const unmatched = results.length - matched

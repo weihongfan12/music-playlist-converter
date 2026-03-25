@@ -1,5 +1,6 @@
 {
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
-  "framework": "vue"
+  "installCommand": "cd frontend && npm install",
+  "framework": null
 }

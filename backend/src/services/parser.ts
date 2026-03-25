@@ -49,6 +49,8 @@ export class PlaylistParser {
 
   private async parseNeteasePlaylist(playlistId: string): Promise<PlaylistInfo> {
     try {
+      console.log(`[Netease] Fetching playlist ${playlistId}`)
+      
       const response = await axios.get(`${this.neteaseApiUrl}/playlist/detail`, {
         params: { id: playlistId },
         timeout: 15000
@@ -63,43 +65,67 @@ export class PlaylistParser {
       const playlist = data.playlist
       const trackIds = playlist.trackIds?.map((t: any) => t.id) || []
       
+      console.log(`[Netease] Found ${trackIds.length} track IDs`)
+      
       let songs: Song[] = []
       
       if (trackIds.length > 0) {
-        const batchSize = 500
+        const batchSize = 100
+        let successCount = 0
+        let failCount = 0
+        
         for (let i = 0; i < trackIds.length; i += batchSize) {
           const batchIds = trackIds.slice(i, i + batchSize)
           try {
+            console.log(`[Netease] Fetching batch ${Math.floor(i/batchSize) + 1}, songs ${i+1}-${Math.min(i+batchSize, trackIds.length)}`)
+            
             const detailResponse = await axios.get(`${this.neteaseApiUrl}/song/detail`, {
               params: { ids: batchIds.join(',') },
-              timeout: 15000
+              timeout: 30000
             })
             
             if (detailResponse.data.code === 200 && detailResponse.data.songs) {
-              songs = songs.concat(detailResponse.data.songs.map((track: any) => ({
+              const batchSongs = detailResponse.data.songs.map((track: any) => ({
                 id: track.id.toString(),
                 name: track.name,
                 artist: (track.ar || []).map((a: any) => a.name),
                 album: track.al?.name || '',
                 duration: Math.floor((track.dt || 0) / 1000),
                 cover: track.al?.picUrl
-              })))
+              }))
+              songs = songs.concat(batchSongs)
+              successCount += batchSongs.length
+              console.log(`[Netease] Batch success: ${batchSongs.length} songs, total: ${songs.length}`)
+            } else {
+              failCount += batchIds.length
+              console.error(`[Netease] Batch failed: code=${detailResponse.data.code}, songs=${detailResponse.data.songs?.length || 0}`)
             }
-          } catch (e) {
-            console.error('Batch song detail error:', e)
+          } catch (e: any) {
+            failCount += batchIds.length
+            console.error(`[Netease] Batch error: ${e.message}`)
+          }
+          
+          if (i + batchSize < trackIds.length) {
+            await new Promise(resolve => setTimeout(resolve, 200))
           }
         }
+        
+        console.log(`[Netease] Parse complete: ${successCount} success, ${failCount} failed`)
       }
 
-      return {
+      const result = {
         id: playlist.id.toString(),
         name: playlist.name,
         creator: playlist.creator?.nickname || '未知',
         description: playlist.description || '',
-        songCount: playlist.trackCount || songs.length,
+        songCount: songs.length,
         createTime: new Date(playlist.createTime || Date.now()),
         songs
       }
+      
+      console.log(`[Netease] Returning ${result.songs.length} songs`)
+      
+      return result
     } catch (error: any) {
       console.error('Parse Netease playlist error:', error.message)
       

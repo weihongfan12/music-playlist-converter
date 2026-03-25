@@ -1,8 +1,17 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { computed } from 'vue'
 
 const userStore = useUserStore()
+
+const avatarUrl = computed(() => {
+  if (!userStore.user?.avatar) return ''
+  if (userStore.user.avatar.startsWith('http')) {
+    return userStore.user.avatar
+  }
+  return `http://localhost:3001${userStore.user.avatar}`
+})
 </script>
 
 <template>
@@ -35,8 +44,8 @@ const userStore = useUserStore()
           <RouterLink to="/profile" class="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
             <div class="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center">
               <img
-                v-if="userStore.user?.avatar"
-                :src="userStore.user.avatar"
+                v-if="avatarUrl"
+                :src="avatarUrl"
                 alt="头像"
                 class="w-full h-full object-cover"
               />

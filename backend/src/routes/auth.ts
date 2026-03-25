@@ -1,20 +1,26 @@
 import { Router, Request, Response } from 'express'
 import { userService } from '../services/userService'
-import { authMiddleware } from '../middleware/auth'
-import { ApiResponse, UserProfile } from '../types'
+import { authMiddleware, AuthRequest } from '../middleware/auth'
+import { ApiResponse } from '../types'
 import multer from 'multer'
 import path from 'path'
-import { v4 as uuidv4 } from 'uuid'
+import fs from 'fs'
 
 const router = Router()
 
+const uploadDir = path.join(__dirname, '../../uploads/avatars')
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true })
+}
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/avatars/')
+    cb(null, uploadDir)
   },
   filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
     const ext = path.extname(file.originalname)
-    cb(null, `${uuidv4()}${ext}`)
+    cb(null, 'avatar-' + uniqueSuffix + ext)
   }
 })
 
@@ -22,7 +28,7 @@ const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif']
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true)
     } else {
@@ -33,31 +39,25 @@ const upload = multer({
 
 router.post('/register', async (req: Request, res: Response) => {
   try {
-    const { username, email, password } = req.body
+    const { username, password } = req.body
 
-    if (!username || !email || !password) {
+    if (!username || !password) {
       return res.status(400).json({
         code: 1001,
-        message: '请填写完整的注册信息'
+        message: '请提供用户名和密码'
       } as ApiResponse)
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({
-        code: 1001,
-        message: '密码长度至少6位'
-      } as ApiResponse)
-    }
-
-    const result = await userService.register({ username, email, password })
+    const result = await userService.register(username, password)
     
     res.json({
       code: 200,
       data: result
     } as ApiResponse)
   } catch (error: any) {
+    console.error('Register error:', error)
     res.status(400).json({
-      code: 1001,
+      code: 1002,
       message: error.message || '注册失败'
     } as ApiResponse)
   }
@@ -65,24 +65,25 @@ router.post('/register', async (req: Request, res: Response) => {
 
 router.post('/login', async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body
+    const { username, password } = req.body
 
-    if (!email || !password) {
+    if (!username || !password) {
       return res.status(400).json({
         code: 1001,
-        message: '请输入邮箱和密码'
+        message: '请提供用户名和密码'
       } as ApiResponse)
     }
 
-    const result = await userService.login({ email, password })
+    const result = await userService.login(username, password)
     
     res.json({
       code: 200,
       data: result
     } as ApiResponse)
   } catch (error: any) {
+    console.error('Login error:', error)
     res.status(401).json({
-      code: 1001,
+      code: 1003,
       message: error.message || '登录失败'
     } as ApiResponse)
   }
@@ -90,19 +91,20 @@ router.post('/login', async (req: Request, res: Response) => {
 
 router.get('/profile', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const profile = await userService.getProfile(req.user!.userId)
+    const authReq = req as AuthRequest
+    const profile = await userService.getProfile(authReq.user!.userId)
     
     if (!profile) {
       return res.status(404).json({
-        code: 1002,
+        code: 1004,
         message: '用户不存在'
       } as ApiResponse)
     }
-
+    
     res.json({
       code: 200,
       data: profile
-    } as ApiResponse<UserProfile>)
+    } as ApiResponse)
   } catch (error: any) {
     res.status(500).json({
       code: 5001,
@@ -113,16 +115,18 @@ router.get('/profile', authMiddleware, async (req: Request, res: Response) => {
 
 router.put('/profile', authMiddleware, async (req: Request, res: Response) => {
   try {
+    const authReq = req as AuthRequest
     const { username } = req.body
-    const profile = await userService.updateProfile(req.user!.userId, { username })
+    
+    const profile = await userService.updateProfile(authReq.user!.userId, { username })
     
     res.json({
       code: 200,
       data: profile
-    } as ApiResponse<UserProfile>)
+    } as ApiResponse)
   } catch (error: any) {
     res.status(400).json({
-      code: 1001,
+      code: 1005,
       message: error.message || '更新失败'
     } as ApiResponse)
   }
@@ -137,12 +141,15 @@ router.post('/avatar', authMiddleware, upload.single('avatar'), async (req: Requ
       } as ApiResponse)
     }
 
+    const authReq = req as AuthRequest
     const avatarUrl = `/uploads/avatars/${req.file.filename}`
-    const profile = await userService.updateProfile(req.user!.userId, { avatar: avatarUrl })
+    const profile = await userService.updateProfile(authReq.user!.userId, { avatar: avatarUrl })
+    
+    const fullAvatarUrl = `${req.protocol}://${req.get('host')}${avatarUrl}`
     
     res.json({
       code: 200,
-      data: { avatar: avatarUrl, profile }
+      data: { avatar: fullAvatarUrl, profile }
     } as ApiResponse)
   } catch (error: any) {
     res.status(500).json({
@@ -152,25 +159,19 @@ router.post('/avatar', authMiddleware, upload.single('avatar'), async (req: Requ
   }
 })
 
-router.post('/change-password', authMiddleware, async (req: Request, res: Response) => {
+router.put('/password', authMiddleware, async (req: Request, res: Response) => {
   try {
+    const authReq = req as AuthRequest
     const { oldPassword, newPassword } = req.body
-
+    
     if (!oldPassword || !newPassword) {
       return res.status(400).json({
         code: 1001,
-        message: '请输入原密码和新密码'
+        message: '请提供原密码和新密码'
       } as ApiResponse)
     }
-
-    if (newPassword.length < 6) {
-      return res.status(400).json({
-        code: 1001,
-        message: '新密码长度至少6位'
-      } as ApiResponse)
-    }
-
-    await userService.changePassword(req.user!.userId, oldPassword, newPassword)
+    
+    await userService.changePassword(authReq.user!.userId, oldPassword, newPassword)
     
     res.json({
       code: 200,
@@ -178,65 +179,8 @@ router.post('/change-password', authMiddleware, async (req: Request, res: Respon
     } as ApiResponse)
   } catch (error: any) {
     res.status(400).json({
-      code: 1001,
+      code: 1006,
       message: error.message || '修改密码失败'
-    } as ApiResponse)
-  }
-})
-
-router.post('/forgot-password', async (req: Request, res: Response) => {
-  try {
-    const { email } = req.body
-
-    if (!email) {
-      return res.status(400).json({
-        code: 1001,
-        message: '请输入邮箱'
-      } as ApiResponse)
-    }
-
-    await userService.forgotPassword(email)
-    
-    res.json({
-      code: 200,
-      message: '如果该邮箱已注册，您将收到重置密码的邮件'
-    } as ApiResponse)
-  } catch (error: any) {
-    res.status(500).json({
-      code: 5001,
-      message: error.message || '发送邮件失败'
-    } as ApiResponse)
-  }
-})
-
-router.post('/reset-password', async (req: Request, res: Response) => {
-  try {
-    const { token, newPassword } = req.body
-
-    if (!token || !newPassword) {
-      return res.status(400).json({
-        code: 1001,
-        message: '参数不完整'
-      } as ApiResponse)
-    }
-
-    if (newPassword.length < 6) {
-      return res.status(400).json({
-        code: 1001,
-        message: '密码长度至少6位'
-      } as ApiResponse)
-    }
-
-    await userService.resetPassword(token, newPassword)
-    
-    res.json({
-      code: 200,
-      message: '密码重置成功'
-    } as ApiResponse)
-  } catch (error: any) {
-    res.status(400).json({
-      code: 1001,
-      message: error.message || '重置密码失败'
     } as ApiResponse)
   }
 })

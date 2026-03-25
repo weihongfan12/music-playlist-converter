@@ -112,46 +112,44 @@ export class SongMatcher {
   }
 
   private async searchYouTubeMusic(query: string, sourceSong: Song): Promise<Song[]> {
-    try {
-      const response = await axios.get('https://music.youtube.com/youtubei/v1/search', {
-        params: {
-          key: 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30'
-        },
-        data: {
-          context: {
-            client: {
-              clientName: 'WEB_REMIX',
-              clientVersion: '1.20231218.00.00'
-            }
+    const apiKey = process.env.YOUTUBE_API_KEY
+    
+    if (apiKey) {
+      try {
+        const response = await axios.get('https://www.googleapis.com/youtube/v3/search', {
+          params: {
+            part: 'snippet',
+            q: query,
+            type: 'video',
+            videoCategoryId: '10',
+            maxResults: 10,
+            key: apiKey
           },
-          query: query
-        },
-        headers: {
-          'Content-Type': 'application/json',
-          'Origin': 'https://music.youtube.com',
-          'Referer': 'https://music.youtube.com/'
-        },
-        timeout: 10000
-      })
+          timeout: 15000
+        })
 
-      const results = response.data?.contents?.tabbedSearchResultsRenderer?.tabs?.[0]?.tabRenderer?.content?.sectionListRenderer?.contents?.[0]?.musicShelfRenderer?.contents || []
-      
-      return results.slice(0, 10).map((item: any) => {
-        const track = item.musicResponsiveListItemRenderer
-        const title = track.flexColumns?.[0]?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.[0]?.text || ''
-        const artist = track.flexColumns?.[1]?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.[0]?.text || ''
+        const results: Song[] = []
         
-        return {
-          id: track.playlistItemData?.videoId || '',
-          name: title,
-          artist: [artist],
-          album: track.flexColumns?.[2]?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.[0]?.text || '',
-          duration: 0,
-          uri: `youtube:music:${track.playlistItemData?.videoId}`
+        for (const item of response.data.items || []) {
+          const title = item.snippet?.title || ''
+          const channelTitle = item.snippet?.channelTitle || ''
+          
+          results.push({
+            id: item.id?.videoId || '',
+            name: title,
+            artist: [channelTitle],
+            album: '',
+            duration: 0,
+            cover: item.snippet?.thumbnails?.high?.url || item.snippet?.thumbnails?.default?.url || '',
+            uri: `youtube:music:${item.id?.videoId}`
+          })
         }
-      })
-    } catch (error) {
-      console.error('YouTube Music search error:', error)
+
+        console.log(`[YouTube] 搜索 "${query}" 找到 ${results.length} 个结果`)
+        return results
+      } catch (error: any) {
+        console.error('YouTube search error:', error.message)
+      }
     }
     
     return this.mockSearch(sourceSong)

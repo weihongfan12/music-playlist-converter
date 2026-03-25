@@ -6,20 +6,31 @@ import { useUserStore } from '@/stores/user'
 const router = useRouter()
 const userStore = useUserStore()
 
-const email = ref('')
+const username = ref('')
 const password = ref('')
 const error = ref('')
 const isLoading = ref(false)
 
 async function handleLogin() {
   error.value = ''
+  
+  if (!username.value) {
+    error.value = '请输入用户名'
+    return
+  }
+  
+  if (!password.value) {
+    error.value = '请输入密码'
+    return
+  }
+  
   isLoading.value = true
 
   try {
-    await userStore.login(email.value, password.value)
+    await userStore.login(username.value, password.value)
     router.push('/')
   } catch (e: any) {
-    error.value = e.response?.data?.message || '登录失败，请检查邮箱和密码'
+    error.value = e.response?.data?.message || '登录失败，请检查用户名和密码'
   } finally {
     isLoading.value = false
   }
@@ -50,19 +61,19 @@ async function handleLogin() {
         <form @submit.prevent="handleLogin" class="space-y-5">
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              邮箱
+              用户名
             </label>
             <div class="relative">
               <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </span>
               <input
-                v-model="email"
-                type="email"
+                v-model="username"
+                type="text"
                 class="input pl-12"
-                placeholder="请输入邮箱"
+                placeholder="请输入用户名"
                 required
               />
             </div>
@@ -86,19 +97,6 @@ async function handleLogin() {
                 required
               />
             </div>
-          </div>
-
-          <div class="flex items-center justify-between">
-            <label class="flex items-center">
-              <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
-              <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">记住我</span>
-            </label>
-            <RouterLink 
-              to="/forgot-password" 
-              class="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400"
-            >
-              忘记密码？
-            </RouterLink>
           </div>
 
           <button

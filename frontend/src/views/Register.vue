@@ -6,9 +6,8 @@ import { useUserStore } from '@/stores/user'
 const router = useRouter()
 const userStore = useUserStore()
 
-const email = ref('')
-const password = ref('')
 const username = ref('')
+const password = ref('')
 const confirmPassword = ref('')
 const error = ref('')
 const isLoading = ref(false)
@@ -21,8 +20,8 @@ async function handleRegister() {
     return
   }
   
-  if (password.value !== confirmPassword.value) {
-    error.value = '两次输入的密码不一致'
+  if (username.value.length < 2) {
+    error.value = '用户名至少2个字符'
     return
   }
   
@@ -31,10 +30,15 @@ async function handleRegister() {
     return
   }
   
+  if (password.value !== confirmPassword.value) {
+    error.value = '两次输入的密码不一致'
+    return
+  }
+  
   isLoading.value = true
 
   try {
-    await userStore.register(username.value, email.value, password.value)
+    await userStore.register(username.value, password.value)
     router.push('/')
   } catch (e: any) {
     error.value = e.response?.data?.message || '注册失败，请稍后重试'
@@ -82,26 +86,7 @@ async function handleRegister() {
                 class="input pl-12"
                 placeholder="请输入用户名"
                 required
-              />
-            </div>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              邮箱
-            </label>
-            <div class="relative">
-              <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </span>
-              <input
-                v-model="email"
-                type="email"
-                class="input pl-12"
-                placeholder="请输入邮箱"
-                required
+                minlength="2"
               />
             </div>
           </div>

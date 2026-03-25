@@ -32,9 +32,9 @@ export interface MatchResponse {
   results: MatchResult[]
 }
 
-export type Platform = 'netease' | 'qq' | 'kugou' | 'kuwo' | 'migu' | 'spotify' | 'apple_music' | 'youtube_music'
+export type Platform = 'netease' | 'qq' | 'kugou' | 'kuwo' | 'migu' | 'spotify' | 'youtube_music'
 
-export type ExportFormat = 'json' | 'csv' | 'm3u'
+export type ExportFormat = 'json' | 'csv' | 'm3u' | 'txt'
 
 export interface ExportResult {
   success: boolean

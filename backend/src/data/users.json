@@ -1,0 +1,15 @@
+{
+  "users": {
+    "38071567-1c3b-4ccc-bfce-fde19ff75306": {
+      "id": "38071567-1c3b-4ccc-bfce-fde19ff75306",
+      "username": "admin",
+      "passwordHash": "$2a$10$LyRT8MA60LF22XfNM5MnJeRzuPYkw3yoAGii0lBG2whAdaasgJL3G",
+      "createdAt": "2026-03-25T10:30:40.388Z",
+      "updatedAt": "2026-03-25T11:17:57.639Z",
+      "avatar": "/uploads/avatars/avatar-1774437477635-202825384.jpg"
+    }
+  },
+  "usernameIndex": {
+    "admin": "38071567-1c3b-4ccc-bfce-fde19ff75306"
+  }
+}

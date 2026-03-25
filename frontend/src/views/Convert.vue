@@ -14,6 +14,8 @@ const isLoading = ref(false)
 const error = ref('')
 const playlistInfo = ref<any>(null)
 const step = ref(1)
+const matchProgress = ref(0)
+const isCancelled = ref(false)
 
 const sourcePlatforms = [
   { id: 'netease', name: '网易云音乐', icon: '🎵', color: 'from-red-500 to-red-600' },
@@ -24,9 +26,11 @@ const sourcePlatforms = [
 ]
 
 const targetPlatforms = [
-  { id: 'spotify', name: 'Spotify', icon: '🟢', color: 'from-green-500 to-green-600', available: true },
-  { id: 'apple_music', name: 'Apple Music', icon: '🔴', color: 'from-red-500 to-red-600', available: true },
-  { id: 'youtube_music', name: 'YouTube Music', icon: '▶️', color: 'from-red-500 to-red-600', available: true },
+  { id: 'netease', name: '网易云音乐', icon: '🎵', color: 'from-red-500 to-red-600', available: true },
+  { id: 'qq', name: 'QQ音乐', icon: '🎶', color: 'from-green-500 to-green-600', available: true },
+  { id: 'kugou', name: '酷狗音乐', icon: '🎧', color: 'from-blue-500 to-blue-600', available: true },
+  { id: 'kuwo', name: '酷我音乐', icon: '📻', color: 'from-orange-500 to-orange-600', available: true },
+  { id: 'migu', name: '咪咕音乐', icon: '🎼', color: 'from-pink-500 to-pink-600', available: true },
 ]
 
 const canProceed = computed(() => {
@@ -41,28 +45,80 @@ const canProceed = computed(() => {
 
 async function parsePlaylist() {
   if (!canProceed.value) return
-  
+
   isLoading.value = true
   error.value = ''
-  
+
   try {
-    const response = await axios.post('/api/v1/playlist/parse', {
-      url: playlistUrl.value,
-      platform: selectedSourcePlatform.value
-    })
-    
-    if (response.data.code === 200) {
-      playlistInfo.value = response.data.data
-      store.setPlaylistInfo(response.data.data)
-      step.value = 2
-    } else {
-      error.value = response.data.message || '解析失败'
-    }
+    const result = await store.parsePlaylist(playlistUrl.value, selectedSourcePlatform.value)
+    playlistInfo.value = result
+    step.value = 2
   } catch (e: any) {
-    error.value = e.response?.data?.message || '网络错误，请稍后重试'
+    error.value = e.message || '网络错误，请稍后重试'
   } finally {
     isLoading.value = false
   }
+}
+
+async function searchTarget(query: string, platform: string): Promise<any[]> {
+  try {
+    console.log(`[搜索] 开始搜索: ${query}, 平台: ${platform}`)
+    
+    const response = await axios.get('/api/v1/proxy/search', {
+      params: { q: query, platform },
+      timeout: 10000
+    })
+    
+    const items = response.data.items || []
+    console.log(`[搜索] 成功，找到 ${items.length} 个结果`)
+    
+    return items
+  } catch (e: any) {
+    console.error('[搜索] 失败:', e.message)
+    return []
+  }
+}
+
+function calculateMatchScore(sourceSong: any, targetSong: any): number {
+  const normalizeStr = (str: string) => str.toLowerCase().replace(/[^\w\s\u4e00-\u9fa5]/g, '').trim()
+  
+  const sourceName = normalizeStr(sourceSong.name || '')
+  const targetName = normalizeStr(targetSong.name || '')
+  const sourceArtist = (sourceSong.artist || []).map((a: string) => normalizeStr(a)).join(' ')
+  const targetArtist = (targetSong.artist || []).map((a: string) => normalizeStr(a)).join(' ')
+  
+  let nameScore = 0
+  let artistScore = 0
+  
+  if (sourceName && targetName) {
+    if (sourceName === targetName) {
+      nameScore = 1
+    } else if (sourceName.includes(targetName) || targetName.includes(sourceName)) {
+      nameScore = 0.8
+    } else {
+      const commonChars = [...sourceName].filter(c => targetName.includes(c)).length
+      nameScore = commonChars / Math.max(sourceName.length, targetName.length) * 0.6
+    }
+  }
+  
+  if (sourceArtist && targetArtist) {
+    if (sourceArtist === targetArtist) {
+      artistScore = 1
+    } else if (sourceArtist.includes(targetArtist) || targetArtist.includes(sourceArtist)) {
+      artistScore = 0.7
+    } else {
+      const sourceArtistWords = sourceArtist.split(' ')
+      const targetArtistWords = targetArtist.split(' ')
+      const commonWords = sourceArtistWords.filter((w: string) => 
+        targetArtistWords.some((tw: string) => tw.includes(w) || w.includes(tw))
+      ).length
+      artistScore = commonWords / Math.max(sourceArtistWords.length, targetArtistWords.length) * 0.5
+    }
+  }
+  
+  const score = nameScore * 0.6 + artistScore * 0.4
+  
+  return Math.min(1, score)
 }
 
 async function matchSongs() {
@@ -70,34 +126,111 @@ async function matchSongs() {
   
   isLoading.value = true
   error.value = ''
+  matchProgress.value = 0
+  isCancelled.value = false
   
-  console.log('[Frontend] Playlist info:', playlistInfo.value)
-  console.log('[Frontend] Songs count:', playlistInfo.value.songs?.length)
-  console.log('[Frontend] Target platform:', selectedTargetPlatform.value)
+  const songs = playlistInfo.value.songs || []
+  const results: any[] = []
+  
+  console.log(`[匹配] 开始匹配 ${songs.length} 首歌曲`)
+  
+  const batchSize = 10
   
   try {
-    const response = await axios.post('/api/v1/songs/match', {
-      songs: playlistInfo.value.songs,
-      targetPlatform: selectedTargetPlatform.value,
-      matchStrategy: 'auto'
-    })
-    
-    console.log('[Frontend] Match response:', response.data)
-    console.log('[Frontend] Results count:', response.data.data?.results?.length)
-    
-    if (response.data.code === 200) {
-      store.setMatchResults(response.data.data)
-      store.setTargetPlatform(selectedTargetPlatform.value)
-      router.push('/result')
-    } else {
-      error.value = response.data.message || '匹配失败'
+    for (let i = 0; i < songs.length; i += batchSize) {
+      if (isCancelled.value) {
+        console.log('[匹配] 用户取消了匹配')
+        break
+      }
+      
+      const batch = songs.slice(i, Math.min(i + batchSize, songs.length))
+      
+      const batchPromises = batch.map(async (song: any) => {
+        if (isCancelled.value) return null
+        
+        const query = `${song.name} ${song.artist?.join(' ') || ''}`
+        
+        try {
+          const searchResults = await searchTarget(query, selectedTargetPlatform.value)
+          
+          if (isCancelled.value) return null
+          
+          let bestMatch: any = null
+          let bestScore = 0
+          
+          for (const result of searchResults) {
+            const score = calculateMatchScore(song, result)
+            if (score > bestScore) {
+              bestScore = score
+              bestMatch = result
+            }
+          }
+          
+          if (bestMatch && bestScore >= 0.2) {
+            return {
+              sourceSong: song,
+              matchedSong: bestMatch,
+              confidence: bestScore,
+              matchType: bestScore >= 0.7 ? 'exact' : bestScore >= 0.5 ? 'fuzzy' : 'manual'
+            }
+          } else {
+            return {
+              sourceSong: song,
+              confidence: bestScore,
+              matchType: 'unmatched'
+            }
+          }
+        } catch (e: any) {
+          return {
+            sourceSong: song,
+            confidence: 0,
+            matchType: 'unmatched'
+          }
+        }
+      })
+      
+      const batchResults = await Promise.all(batchPromises)
+      const validResults = batchResults.filter(r => r !== null)
+      results.push(...validResults)
+      
+      matchProgress.value = Math.round((Math.min(i + batchSize, songs.length) / songs.length) * 100)
+      
+      if (i + batchSize < songs.length && !isCancelled.value) {
+        await new Promise(resolve => setTimeout(resolve, 50))
+      }
     }
+    
+    if (isCancelled.value) {
+      isLoading.value = false
+      matchProgress.value = 0
+      return
+    }
+    
+    const matched = results.filter(r => r.matchType !== 'unmatched').length
+    console.log(`[匹配] 完成: ${matched}/${results.length} 首匹配成功`)
+    
+    store.setMatchResults({
+      total: results.length,
+      matched,
+      unmatched: results.length - matched,
+      results
+    })
+    store.setTargetPlatform(selectedTargetPlatform.value)
+    router.push('/result')
+    
   } catch (e: any) {
-    console.error('[Frontend] Match error:', e)
-    error.value = e.response?.data?.message || '网络错误，请稍后重试'
+    console.error('[匹配] 错误:', e)
+    error.value = '匹配失败，请重试'
   } finally {
     isLoading.value = false
   }
+}
+
+function cancelMatch() {
+  isCancelled.value = true
+  isLoading.value = false
+  matchProgress.value = 0
+  console.log('[匹配] 用户取消')
 }
 
 function goBack() {
@@ -158,6 +291,19 @@ function goBack() {
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         {{ error }}
+      </div>
+
+      <div v-if="isLoading && matchProgress > 0" class="mb-6">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm text-gray-600 dark:text-gray-400">匹配进度</span>
+          <span class="text-sm font-medium text-primary-600">{{ matchProgress }}%</span>
+        </div>
+        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+          <div 
+            class="bg-gradient-to-r from-primary-500 to-primary-600 h-2 rounded-full transition-all duration-300"
+            :style="{ width: matchProgress + '%' }"
+          ></div>
+        </div>
       </div>
 
       <div v-if="step === 1">
@@ -309,17 +455,26 @@ function goBack() {
             </div>
           </div>
 
-          <button 
-            @click="matchSongs"
-            :disabled="!canProceed || isLoading"
-            class="btn btn-primary w-full py-4 text-base"
-          >
-            <svg v-if="isLoading" class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            {{ isLoading ? '匹配中...' : '开始匹配' }}
-          </button>
+          <div class="flex gap-3">
+            <button 
+              @click="matchSongs"
+              :disabled="!canProceed || isLoading"
+              class="btn btn-primary flex-1 py-4 text-base"
+            >
+              <svg v-if="isLoading" class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              {{ isLoading ? `匹配中... ${matchProgress}%` : '开始匹配' }}
+            </button>
+            <button 
+              v-if="isLoading"
+              @click="cancelMatch"
+              class="btn btn-secondary py-4 px-6 text-base"
+            >
+              取消
+            </button>
+          </div>
         </div>
       </div>
     </div>

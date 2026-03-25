@@ -13,8 +13,16 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: process.env.VITE_API_URL || 'http://localhost:3001',
+        target: 'http://localhost:3001',
         changeOrigin: true
+      },
+      '/netease-api': {
+        target: 'https://api-enhanced-kappa-vert.vercel.app',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/netease-api/, ''),
+        secure: false,
+        timeout: 60000,
+        proxyTimeout: 60000
       }
     }
   }

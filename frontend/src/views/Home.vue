@@ -53,30 +53,30 @@ const stats = [
 <template>
   <div class="relative overflow-hidden">
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
-      <div class="absolute -top-40 -right-40 w-80 h-80 bg-primary-500/10 rounded-full blur-3xl animate-pulse-slow"></div>
-      <div class="absolute top-1/2 -left-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse-slow animate-delay-200"></div>
-      <div class="absolute -bottom-40 right-1/3 w-80 h-80 bg-pink-500/10 rounded-full blur-3xl animate-pulse-slow animate-delay-400"></div>
+      <div class="absolute -top-40 -right-40 w-80 h-80 bg-primary-500/10 rounded-full blur-3xl"></div>
+      <div class="absolute top-1/2 -left-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl"></div>
+      <div class="absolute -bottom-40 right-1/3 w-80 h-80 bg-pink-500/10 rounded-full blur-3xl"></div>
     </div>
 
     <section class="relative text-center py-20 lg:py-32">
       <div class="max-w-4xl mx-auto px-4">
-        <div class="inline-flex items-center px-4 py-2 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-sm font-medium mb-8 animate-fade-in">
-          <span class="w-2 h-2 bg-primary-500 rounded-full mr-2 animate-pulse"></span>
+        <div class="inline-flex items-center px-4 py-2 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-sm font-medium mb-8">
+          <span class="w-2 h-2 bg-primary-500 rounded-full mr-2"></span>
           全新升级 · 支持更多平台
         </div>
         
-        <h1 class="text-5xl lg:text-7xl font-bold mb-6 animate-slide-up">
-          <span class="text-surface-900 dark:text-white">音乐歌单</span>
+        <h1 class="text-5xl lg:text-7xl font-bold mb-6">
+          <span class="text-gray-900 dark:text-white">音乐歌单</span>
           <br>
           <span class="gradient-text">转换工具</span>
         </h1>
         
-        <p class="text-xl text-surface-600 dark:text-surface-400 mb-10 max-w-2xl mx-auto animate-slide-up animate-delay-100">
+        <p class="text-xl text-gray-600 dark:text-gray-400 mb-10 max-w-2xl mx-auto">
           轻松将您的歌单从一个音乐平台迁移到另一个平台，<br class="hidden md:block">
           支持网易云、QQ音乐、Spotify等主流平台
         </p>
         
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 animate-slide-up animate-delay-200">
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
           <RouterLink 
             to="/convert" 
             class="btn btn-primary text-base px-8 py-4 group"
@@ -93,12 +93,12 @@ const stats = [
       </div>
     </section>
 
-    <section class="py-12 border-y border-surface-200/50 dark:border-surface-700/50 bg-white/50 dark:bg-surface-900/50 backdrop-blur-sm">
+    <section class="py-12 border-y border-gray-200/50 dark:border-gray-700/50 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm">
       <div class="max-w-6xl mx-auto px-4">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
           <div v-for="stat in stats" :key="stat.label" class="text-center">
             <div class="text-3xl lg:text-4xl font-bold gradient-text mb-2">{{ stat.value }}</div>
-            <div class="text-sm text-surface-500 dark:text-surface-400">{{ stat.label }}</div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">{{ stat.label }}</div>
           </div>
         </div>
       </div>
@@ -107,10 +107,10 @@ const stats = [
     <section id="features" class="py-20">
       <div class="max-w-6xl mx-auto px-4">
         <div class="text-center mb-16">
-          <h2 class="text-3xl lg:text-4xl font-bold text-surface-900 dark:text-white mb-4">
+          <h2 class="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-4">
             功能特点
           </h2>
-          <p class="text-surface-600 dark:text-surface-400 max-w-2xl mx-auto">
+          <p class="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
             强大的功能，简洁的操作，让歌单迁移变得前所未有的简单
           </p>
         </div>
@@ -120,7 +120,6 @@ const stats = [
             v-for="(feature, index) in features" 
             :key="feature.title"
             class="card p-6 group hover:-translate-y-1"
-            :class="`animate-fade-in animate-delay-${(index + 1) * 100}`"
           >
             <div 
               class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mb-4 bg-gradient-to-br"
@@ -128,8 +127,8 @@ const stats = [
             >
               {{ feature.icon }}
             </div>
-            <h3 class="text-lg font-semibold text-surface-900 dark:text-white mb-2">{{ feature.title }}</h3>
-            <p class="text-surface-600 dark:text-surface-400 text-sm leading-relaxed">{{ feature.description }}</p>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">{{ feature.title }}</h3>
+            <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">{{ feature.description }}</p>
           </div>
         </div>
       </div>
@@ -137,7 +136,7 @@ const stats = [
 
     <section class="py-20 bg-gradient-to-b from-transparent via-primary-50/50 to-transparent dark:via-primary-950/20">
       <div class="max-w-6xl mx-auto px-4">
-        <h2 class="text-3xl lg:text-4xl font-bold text-center text-surface-900 dark:text-white mb-16">
+        <h2 class="text-3xl lg:text-4xl font-bold text-center text-gray-900 dark:text-white mb-16">
           支持的平台
         </h2>
         
@@ -149,13 +148,13 @@ const stats = [
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
               </div>
-              <h3 class="text-xl font-semibold text-surface-900 dark:text-white">源平台</h3>
+              <h3 class="text-xl font-semibold text-gray-900 dark:text-white">源平台</h3>
             </div>
             <div class="flex flex-wrap gap-3">
               <span 
                 v-for="platform in platforms" 
                 :key="platform.name"
-                class="inline-flex items-center px-4 py-2.5 rounded-xl bg-surface-50 dark:bg-surface-800 text-surface-700 dark:text-surface-300 text-sm font-medium border border-surface-200 dark:border-surface-700 hover:border-primary-300 dark:hover:border-primary-700 transition-colors cursor-default"
+                class="inline-flex items-center px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium border border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-700 transition-colors cursor-default"
               >
                 <span class="mr-2">{{ platform.icon }}</span>
                 {{ platform.name }}
@@ -170,13 +169,13 @@ const stats = [
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
                 </svg>
               </div>
-              <h3 class="text-xl font-semibold text-surface-900 dark:text-white">目标平台</h3>
+              <h3 class="text-xl font-semibold text-gray-900 dark:text-white">目标平台</h3>
             </div>
             <div class="flex flex-wrap gap-3">
               <span 
                 v-for="platform in targetPlatforms" 
                 :key="platform.name"
-                class="inline-flex items-center px-4 py-2.5 rounded-xl bg-surface-50 dark:bg-surface-800 text-surface-700 dark:text-surface-300 text-sm font-medium border border-surface-200 dark:border-surface-700 hover:border-purple-300 dark:hover:border-purple-700 transition-colors cursor-default"
+                class="inline-flex items-center px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700 transition-colors cursor-default"
               >
                 <span class="mr-2">{{ platform.icon }}</span>
                 {{ platform.name }}
@@ -189,7 +188,7 @@ const stats = [
 
     <section class="py-20">
       <div class="max-w-4xl mx-auto px-4">
-        <h2 class="text-3xl lg:text-4xl font-bold text-center text-surface-900 dark:text-white mb-16">
+        <h2 class="text-3xl lg:text-4xl font-bold text-center text-gray-900 dark:text-white mb-16">
           使用步骤
         </h2>
         
@@ -201,24 +200,24 @@ const stats = [
               <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-lg shadow-primary-500/25">
                 <span class="text-2xl font-bold text-white">1</span>
               </div>
-              <h3 class="font-semibold text-surface-900 dark:text-white mb-2">粘贴歌单链接</h3>
-              <p class="text-sm text-surface-600 dark:text-surface-400">复制您想转换的歌单链接</p>
+              <h3 class="font-semibold text-gray-900 dark:text-white mb-2">粘贴歌单链接</h3>
+              <p class="text-sm text-gray-600 dark:text-gray-400">复制您想转换的歌单链接</p>
             </div>
             
             <div class="card p-6 text-center relative z-10">
               <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/25">
                 <span class="text-2xl font-bold text-white">2</span>
               </div>
-              <h3 class="font-semibold text-surface-900 dark:text-white mb-2">选择目标平台</h3>
-              <p class="text-sm text-surface-600 dark:text-surface-400">选择您要转换到的平台</p>
+              <h3 class="font-semibold text-gray-900 dark:text-white mb-2">选择目标平台</h3>
+              <p class="text-sm text-gray-600 dark:text-gray-400">选择您要转换到的平台</p>
             </div>
             
             <div class="card p-6 text-center relative z-10">
               <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-pink-500 to-pink-600 flex items-center justify-center shadow-lg shadow-pink-500/25">
                 <span class="text-2xl font-bold text-white">3</span>
               </div>
-              <h3 class="font-semibold text-surface-900 dark:text-white mb-2">一键转换</h3>
-              <p class="text-sm text-surface-600 dark:text-surface-400">点击转换，等待完成</p>
+              <h3 class="font-semibold text-gray-900 dark:text-white mb-2">一键转换</h3>
+              <p class="text-sm text-gray-600 dark:text-gray-400">点击转换，等待完成</p>
             </div>
           </div>
         </div>
@@ -230,10 +229,10 @@ const stats = [
         <div class="card-glass p-12 relative overflow-hidden">
           <div class="absolute inset-0 bg-gradient-to-r from-primary-500/10 via-purple-500/10 to-pink-500/10"></div>
           <div class="relative z-10">
-            <h2 class="text-2xl lg:text-3xl font-bold text-surface-900 dark:text-white mb-4">
+            <h2 class="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mb-4">
               准备好开始了吗？
             </h2>
-            <p class="text-surface-600 dark:text-surface-400 mb-8">
+            <p class="text-gray-600 dark:text-gray-400 mb-8">
               立即体验，让您的音乐歌单自由迁移
             </p>
             <RouterLink 

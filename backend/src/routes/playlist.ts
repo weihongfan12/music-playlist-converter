@@ -52,7 +52,8 @@ router.post('/export', async (req: Request, res: Response) => {
     const contentTypes: Record<string, string> = {
       json: 'application/json',
       csv: 'text/csv',
-      m3u: 'audio/x-mpegurl'
+      m3u: 'audio/x-mpegurl',
+      txt: 'text/plain'
     }
 
     res.setHeader('Content-Type', contentTypes[format] || 'application/octet-stream')

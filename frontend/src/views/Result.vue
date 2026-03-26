@@ -27,6 +27,18 @@ const matchRate = computed(() => {
   return Math.round((matchedCount.value / totalCount.value) * 100)
 })
 
+const matchedSongs = computed(() => {
+  const results = matchResults.value?.results || []
+  return results.filter((r: any) => r.matchedSong && r.matchType !== 'unmatched')
+})
+
+const matchedSongsText = computed(() => {
+  return matchedSongs.value.map((r: any) => {
+    const song = r.matchedSong
+    return `${song.name} - ${song.artist?.join(', ') || '未知'}`
+  }).join('\n')
+})
+
 const filteredResults = computed(() => {
   const results = matchResults.value?.results || []
   if (!searchQuery.value) return results
@@ -58,19 +70,43 @@ const platformColors: Record<string, string> = {
 }
 
 const platformImportUrls: Record<string, string> = {
-  netease: 'https://www.tunemymusic.com/zh/transfer?source=csv&target=netease',
-  qq: 'https://www.tunemymusic.com/zh/transfer?source=csv&target=qq',
-  kugou: 'https://www.tunemymusic.com/zh/transfer?source=csv&target=kugou',
-  kuwo: 'https://www.tunemymusic.com/zh/transfer?source=csv&target=kuwo',
-  migu: 'https://www.tunemymusic.com/zh/transfer?source=csv&target=migu',
-  spotify: 'https://www.tunemymusic.com/zh/transfer?source=csv&target=spotify',
-  qqmusic: 'https://www.tunemymusic.com/zh/transfer?source=csv&target=qq'
+  netease: 'https://music.163.com',
+  qq: 'https://y.qq.com',
+  kugou: 'https://www.kugou.com',
+  kuwo: 'http://www.kuwo.cn',
+  migu: 'https://music.migu.cn',
+  spotify: 'https://open.spotify.com',
+  qqmusic: 'https://y.qq.com'
 }
 
 function oneClickImport() {
   const platform = targetPlatform.value || 'qq'
-  const importUrl = platformImportUrls[platform] || platformImportUrls.qq
-  window.open(importUrl, '_blank')
+  const text = matchedSongsText.value || ''
+  const platformName = platformNames[platform] || '目标平台'
+  
+  navigator.clipboard.writeText(text).then(() => {
+    let guide = `已复制 ${matchedSongs.value.length} 首歌曲到剪贴板！\n\n`
+    
+    if (platform === 'qq' || platform === 'qqmusic') {
+      guide += `📱 QQ音乐导入方法：\n`
+      guide += `1. 打开QQ音乐APP\n`
+      guide += `2. 点击「我的」→ 右上角「更多」→「导入外部歌单」\n`
+      guide += `3. 粘贴歌曲列表，点击匹配\n\n`
+      guide += `即将打开QQ音乐官网...`
+    } else if (platform === 'netease') {
+      guide += `📱 网易云音乐导入方法：\n`
+      guide += `1. 打开网易云音乐APP\n`
+      guide += `2. 点击「我的」→「导入外部歌单」\n`
+      guide += `3. 粘贴歌曲列表，点击匹配\n\n`
+      guide += `即将打开网易云音乐官网...`
+    } else {
+      guide += `请前往${platformName}APP使用导入功能\n\n`
+      guide += `即将打开${platformName}官网...`
+    }
+    
+    alert(guide)
+    window.open(platformImportUrls[platform] || platformImportUrls.qq, '_blank')
+  })
 }
 
 function getPlatformSearchUrl(platform: string, song: any): string {
@@ -133,6 +169,17 @@ function copyAllSongs() {
   
   navigator.clipboard.writeText(text).then(() => {
     alert(`已复制 ${results.length} 首歌曲信息`)
+  })
+}
+
+function copyMatchedSongs() {
+  const matched = matchedSongs.value
+  if (matched.length === 0) {
+    alert('没有匹配成功的歌曲')
+    return
+  }
+  navigator.clipboard.writeText(matchedSongsText.value).then(() => {
+    alert(`已复制 ${matched.length} 首匹配成功的歌曲`)
   })
 }
 
@@ -292,6 +339,33 @@ function getMatchTypeIcon(type: string) {
         </div>
       </div>
 
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">快速复制</h3>
+          <div class="flex gap-2">
+            <button 
+              @click="copyMatchedSongs"
+              class="px-3 py-1.5 text-sm bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors"
+            >
+              复制匹配成功 ({{ matchedCount }}首)
+            </button>
+            <button 
+              @click="copyAllSongs"
+              class="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              复制全部 ({{ totalCount }}首)
+            </button>
+          </div>
+        </div>
+        
+        <div v-if="matchedSongs.length > 0" class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 max-h-48 overflow-y-auto">
+          <pre class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono">{{ matchedSongsText }}</pre>
+        </div>
+        <div v-else class="text-center text-gray-500 dark:text-gray-400 py-4">
+          暂无匹配成功的歌曲
+        </div>
+      </div>
+
       <div class="card overflow-hidden">
         <button 
           @click="showQuickLinks = !showQuickLinks"
@@ -318,12 +392,37 @@ function getMatchTypeIcon(type: string) {
         </button>
         
         <div v-if="showQuickLinks" class="border-t dark:border-gray-700 p-5 space-y-4">
+          <div class="p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-100 dark:border-emerald-800">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="text-xl">�</span>
+              <span class="font-semibold text-gray-800 dark:text-white">一键导入（推荐）</span>
+            </div>
+            <ol class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+              <li class="flex items-start gap-2">
+                <span class="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500 text-white text-xs flex items-center justify-center">1</span>
+                <span>点击「一键导入到{{ platformNames[targetPlatform] || '目标平台' }}」按钮</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500 text-white text-xs flex items-center justify-center">2</span>
+                <span>歌曲列表自动复制到剪贴板</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500 text-white text-xs flex items-center justify-center">3</span>
+                <span>打开目标平台APP，找到「导入外部歌单」功能</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500 text-white text-xs flex items-center justify-center">4</span>
+                <span>粘贴歌曲列表，等待匹配完成即可</span>
+              </li>
+            </ol>
+          </div>
+          
           <div class="p-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-100 dark:border-blue-800">
             <div class="flex items-center gap-2 mb-3">
               <span class="text-xl">💡</span>
               <span class="font-semibold text-gray-800 dark:text-white">推荐：第三方批量导入工具</span>
             </div>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">以下工具支持批量导入歌单到各平台</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">先导出 CSV 文件，然后使用以下工具批量导入</p>
             <div class="flex flex-wrap gap-2">
               <a href="https://www.tunemymusic.com/zh" target="_blank" 
                 class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">
@@ -338,13 +437,6 @@ function getMatchTypeIcon(type: string) {
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
                 Soundiiz
-              </a>
-              <a href="https://www.playlist-converter.net/" target="_blank" 
-                class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-medium transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-                Playlist Converter
               </a>
             </div>
           </div>
